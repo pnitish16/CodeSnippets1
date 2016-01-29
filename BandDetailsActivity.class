@@ -1,0 +1,1322 @@
+package com.zmf;
+
+import java.lang.reflect.InvocationTargetException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
+import org.apache.http.NameValuePair;
+import org.apache.http.message.BasicNameValuePair;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import android.annotation.SuppressLint;
+import android.app.Dialog;
+import android.app.ProgressDialog;
+import android.content.Context;
+import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
+import android.net.Uri;
+import android.os.AsyncTask;
+import android.os.Build;
+import android.os.Bundle;
+import android.os.Handler;
+import android.util.DisplayMetrics;
+import android.util.Log;
+import android.view.MenuItem;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.view.View.OnTouchListener;
+import android.view.ViewTreeObserver;
+import android.view.Window;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
+import android.widget.Button;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.ListView;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
+import android.widget.RadioGroup.OnCheckedChangeListener;
+import android.widget.ScrollView;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import com.zmf.adapters.LinkAdapter;
+import com.zmf.adapters.MediaAdapter;
+import com.zmf.adapters.MediaAdapterSingle;
+import com.zmf.adapters.VideoAdapter;
+import com.zmf.imagecache.ImageLoader;
+import com.zmf.pojo.Item;
+import com.zmf.utils.CustomDialogManager;
+import com.zmf.utils.DatabaseHelper;
+import com.zmf.utils.DialogManager;
+import com.zmf.utils.Helper;
+import com.zmf.utils.HelperHttp;
+import com.zmf.utils.TwoWayAdapterView;
+import com.zmf.utils.TwoWayAdapterView.OnItemClickListener;
+import com.zmf.utils.TwoWayGridView;
+import com.zmf.utils.Utils;
+
+public class BandDetailsActivity extends ZMFActivity implements OnCheckedChangeListener, OnClickListener
+{
+
+	Button info_btn, media_btn, links_btn;
+	LinearLayout segment_linear;
+	int band_id = 0;
+	String band_title = "", band_brief = "", band_info = "", band_photo = "", band_image, band_date = "", date = "", band_date1 = "";
+	ImageView band_img, ivTicket;
+	TextView title_txt, brief_txt, tvDate;
+	ArrayList<Item> LinkList, MediaList, VideoList;
+	JSONArray results = null;
+	private static String Linkurl = "band-link-listing.php";
+	private static String Mediaurl = "band-photo-listing.php";
+	ImageLoader imageLoader;
+	DisplayMetrics dm;
+	RadioButton option1, option2, option3;
+	DatabaseHelper db;
+	boolean isLink = true, isMedia = true;
+	int isSold = 0, isFree = 0;
+	String ticket_link = "";
+	boolean isFav = false;
+	private ImageView ivAlarm, ivFavourite;
+	private TextView tvInfo, tvMedia, tvLinks;
+	private LinearLayout llInfo, llMedia, llLinks;
+	private ScrollView svMedia;
+	private boolean info_click = true, media_click = false, link_click = false;
+	private View info_separator, media_separator, link_separator;
+	public static int image_height, image_width;
+	int pixelvalue;
+	private int marked_band_id;
+	private Dialog pDialog;
+	private int request_code = 1234;
+
+	// private TextView
+
+	// webview variables
+
+	ProgressDialog progDailog;
+	private WebView webview;
+	/* variable for counting two successive up-down events */
+	int clickCount = 0;
+	/* variable for storing the time of first click */
+	long startTime;
+	/* variable for calculating the total time */
+	long duration;
+	/*
+	 * constant for defining the time duration between the click that can be
+	 * considered as double-tap
+	 */
+	static final int MAX_DURATION = 1500;
+	private String datatext;
+	private Context context;
+	private WebView wvVideo;
+	private TextView tvPhotos, tvVideo;
+	private boolean isFavList = false;
+	private ScrollView svMain;
+	private boolean isDeleted = false;
+
+	@Override
+	public void onCreate(Bundle savedInstances)
+	{
+		super.onCreate(savedInstances);
+		setContentView(R.layout.activity_program_details1);
+
+		context = BandDetailsActivity.this;
+		getSupportActionBar().setDisplayShowHomeEnabled(false);
+
+		db = new DatabaseHelper(this);
+		Bundle b = getIntent().getExtras();
+		if (b != null)
+		{
+			band_id = b.getInt("id");
+			band_title = b.getString("title").toUpperCase();
+			band_brief = b.getString("brief");
+			band_info = b.getString("info");
+			band_image = b.getString("image_url");
+			band_photo = b.getString("img");
+			isSold = b.getInt("isSold");
+			ticket_link = b.getString("ticket_link");
+			band_date = b.getString("band_date");
+			band_date1 = b.getString("band_date1");
+			isFree = b.getInt("isFree");
+			date = b.getString("date");
+			isFavList = b.getBoolean("isFavList", false);
+
+			this.setTitle(band_title);
+		}
+
+		// Parent Views
+		ivAlarm = getIvAlarm();
+		ivFavourite = getIvFavourite();
+
+		ivAlarm.setVisibility(View.VISIBLE);
+		ivFavourite.setVisibility(View.VISIBLE);
+
+		ivAlarm.setOnClickListener(this);
+		ivFavourite.setOnClickListener(this);
+
+		llInfo = (LinearLayout) findViewById(R.id.llInfo);
+		tvInfo = (TextView) findViewById(R.id.tvInformation);
+		// llMedia = (LinearLayout) findViewById(R.id.llMedia);
+		tvMedia = (TextView) findViewById(R.id.tvMedia);
+		llLinks = (LinearLayout) findViewById(R.id.llLinks);
+		tvLinks = (TextView) findViewById(R.id.tvLinks);
+
+		info_separator = findViewById(R.id.info_separator);
+		media_separator = findViewById(R.id.media_separator);
+		link_separator = findViewById(R.id.link_separator);
+
+		svMedia = (ScrollView) findViewById(R.id.llMedia);
+		svMain = (ScrollView) findViewById(R.id.svMain);
+
+		wvVideo = (WebView) findViewById(R.id.wvVideo);
+		tvInfo.setOnClickListener(this);
+		tvMedia.setOnClickListener(this);
+		tvLinks.setOnClickListener(this);
+
+		if (db.getFavId(band_id) > 0)
+			isFav = true;
+
+		if (isFav)
+			ivFavourite.setImageResource(R.drawable.ic_fav__checked);
+		else
+			ivFavourite.setImageResource(R.drawable.ic_fav_event);
+
+		LinkList = new ArrayList<Item>();
+		MediaList = new ArrayList<Item>();
+		VideoList = new ArrayList<Item>();
+		imageLoader = new ImageLoader(this);
+
+		RadioGroup group1 = (RadioGroup) this.findViewById(R.id.buttongroup1);
+		segment_linear = (LinearLayout) findViewById(R.id.segment_linear);
+		title_txt = (TextView) findViewById(R.id.band_nm_txt);
+		brief_txt = (TextView) findViewById(R.id.band_details_txt);
+		band_img = (ImageView) findViewById(R.id.band_img);
+		ivTicket = (ImageView) findViewById(R.id.ivTicket);
+		tvDate = (TextView) findViewById(R.id.band_date);
+
+		tvPhotos = (TextView) findViewById(R.id.tvPhotos);
+		tvVideo = (TextView) findViewById(R.id.tvVideos);
+		// option1 = (RadioButton) findViewById(R.id.radioButton1);
+		// option2 = (RadioButton) findViewById(R.id.radioButton2);
+		// option3 = (RadioButton) findViewById(R.id.radioButton3);
+
+		title_txt.setText(band_title.toUpperCase());
+
+		if (date.split(",").length > 1)
+		{
+			brief_txt.setText(band_date1.toUpperCase().split(",")[0] + ", " + date.split(",")[0]);
+			tvDate.setText(band_brief.toUpperCase() + " " + date.split(",")[1].toUpperCase());
+		}
+		else
+		{
+			tvDate.setText(band_brief.toUpperCase() + " " + band_date.split(",")[1].toUpperCase());
+			brief_txt.setText(band_date1.toUpperCase().split(",")[0] + ", " + band_date.split(",")[0]);
+		}
+
+		// if (isFree == 1) {
+		// txtTicket.setText(R.string.free);
+		// } else if (isSold == 1) {
+		// txtTicket.setText("Ausverkauft");
+		// } else if (!ticket_link.equals("")) {
+		// txtTicket.setText(R.string.tickets);
+		// } else
+		// txtTicket.setVisibility(View.INVISIBLE);
+		//
+		if (isFree == 1)
+			ivTicket.setVisibility(View.INVISIBLE);
+
+		if (Utils.CheckFile(band_photo))
+		{
+			Bitmap bitmap = BitmapFactory.decodeFile(band_photo);
+			band_img.setImageBitmap(bitmap);
+		}
+		else
+		{
+			imageLoader.DisplayImage(band_image, band_img, R.drawable.placeholder);
+		}
+
+		// group1.check(R.id.radioButton1);
+		// option1.setBackgroundResource(R.drawable.infotab);
+		tvInfo.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_droparrow, 0);
+		ShowInfo();
+		// group1.setOnCheckedChangeListener(this);
+		new UserTask().execute(new String[] {});
+
+		ivTicket.setOnClickListener(new OnClickListener()
+		{
+			@Override
+			public void onClick(View v)
+			{
+				// TODO Auto-generated method stub
+				if (HelperHttp.isNetworkAvailable(context))
+				{
+					if (isSold == 0 && !ticket_link.equals(""))
+					{
+						Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(ticket_link));
+						startActivity(browserIntent);
+					}
+					else
+					{
+						DialogManager.showLongToast("Tickets sind ausverkauft.", BandDetailsActivity.this);
+					}
+				}
+				else
+				{
+					CustomDialogManager.showOkDialog(context, getString(R.string.noconnection));
+				}
+			}
+		});
+
+		ViewTreeObserver vto = band_img.getViewTreeObserver();
+		vto.addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener()
+		{
+			public boolean onPreDraw()
+			{
+				band_img.getViewTreeObserver().removeOnPreDrawListener(this);
+				image_height = band_img.getMeasuredHeight();
+				image_width = band_img.getMeasuredWidth();
+				Log.e("Height, Weight", image_height + "," + image_width);
+				return true;
+			}
+		});
+	}
+
+	/*
+	 * @Override public boolean onCreateOptionsMenu(Menu menu) {
+	 * getMenuInflater().inflate(R.menu.menu_fav, menu); MenuItem favItem =
+	 * menu.findItem(R.id.action_fav); if (db.getFavId(band_id) > 0) isFav =
+	 * true;
+	 * 
+	 * if (isFav) favItem.setIcon(R.drawable.star); else
+	 * favItem.setIcon(R.drawable.star1); return
+	 * super.onCreateOptionsMenu(menu); }
+	 */
+
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item)
+	{
+		switch (item.getItemId())
+		{
+			case R.id.action_fav:
+				if (!isFav)
+				{
+					db.addFavorites(band_id);
+					item.setIcon(R.drawable.ic_fav__checked);
+					isFav = true;
+					DialogManager.showLongToast("Auf der Favoritenliste", BandDetailsActivity.this);
+				}
+				else
+				{
+					db.DeleteFavId(band_id);
+					item.setIcon(R.drawable.ic_fav_event);
+					isFav = false;
+					DialogManager.showLongToast("Aus den Favoriten entfernt", BandDetailsActivity.this);
+				}
+				break;
+
+			case R.id.action_calendar:
+				AddCalenderEvent();
+				break;
+		}
+		return super.onOptionsItemSelected(item);
+	}
+
+	@Override
+	public void onCheckedChanged(RadioGroup group, int checkedId)
+	{
+		// TODO Auto-generated method stub
+		switch (checkedId)
+		{
+			case R.id.radioButton1:
+				segment_linear.removeAllViews();
+				option1.setBackgroundResource(R.drawable.infotab);
+				option2.setBackgroundResource(R.color.Transparent);
+				option3.setBackgroundResource(R.color.Transparent);
+				ShowInfo();
+				break;
+
+			case R.id.radioButton2:
+				segment_linear.removeAllViews();
+				option2.setBackgroundResource(R.drawable.infotab);
+				option1.setBackgroundResource(R.color.Transparent);
+				option3.setBackgroundResource(R.color.Transparent);
+				ShowMedia();
+				break;
+
+			case R.id.radioButton3:
+				segment_linear.removeAllViews();
+				option3.setBackgroundResource(R.drawable.infotab);
+				option2.setBackgroundResource(R.color.Transparent);
+				option1.setBackgroundResource(R.color.Transparent);
+				ShowLinks();
+				break;
+		}
+	}
+
+	@SuppressLint("SimpleDateFormat")
+	public void AddCalenderEvent()
+	{
+		long startTime = 0, endTime1 = 0;
+		String endTime = date + " " + band_date.substring(12, 17);
+
+		// String endDate = "2013-09-21 13:00";
+		// String startDate="16.07.2014, 20:00, Mittwoch";
+
+		Helper.Log("band_date", band_date);
+		Helper.Log("endTime", endTime);
+
+		String endDate = date;
+		// String startDate=event_date.substring(0, 10);
+		// startDate=startDate+" 12:00:00";
+
+		try
+		{
+			Date date = new SimpleDateFormat("yyyy-MM-dd").parse(endDate);
+			startTime = date.getTime();
+
+			Date date1 = new SimpleDateFormat("yyyy-MM-dd HH:mm").parse(endTime);
+			endTime1 = date1.getTime();
+
+		} catch (Exception e)
+		{
+		}
+
+		// String[] proj =
+		// new String[]{
+		// Instances._ID,
+		// Instances.BEGIN,
+		// Instances.END,
+		// Instances.EVENT_ID};
+		// Cursor cursor =
+		// Instances.query(getContentResolver(), proj, startTime, endTime1,
+		// "ZMF - "+band_title);
+		// if (cursor.getCount() > 0)
+		{
+			// deal with conflict
+			Intent intent = new Intent(Intent.ACTION_EDIT);
+			intent.setType("vnd.android.cursor.item/event");
+			intent.putExtra("beginTime", startTime);
+			intent.putExtra("allDay", false);
+			intent.putExtra("endTime", endTime1);
+			intent.putExtra("title", "ZMF - " + band_title);
+			intent.putExtra("location", "Lehenerwinkelweg, 79111 Freiburg");
+			startActivity(intent);
+		}
+		// else
+		// DialogManager.showLongToast("Already added to calendar",
+		// BandDetailsActivity.this);
+	}
+
+	@SuppressLint("NewApi")
+	public void ShowInfo()
+	{
+		pixelvalue = (int) Utils.dipToPixels(context, 18);
+		pixelvalue = (int) (pixelvalue / (getResources().getDisplayMetrics().density));
+		pixelvalue = (int) (pixelvalue - Utils.dipToPixels(context, 2));
+		info_click = true;
+		llInfo.setVisibility(View.VISIBLE);
+		tvInfo.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_downarrow, 0);
+		View child = getLayoutInflater().inflate(R.layout.activity_about, llInfo, false);
+		child.setBackgroundColor(Color.TRANSPARENT);
+		llInfo.addView(child);
+
+		WebView web = (WebView) findViewById(R.id.about_web);
+
+		// band_info = band_info
+		// .replace("<a", "<a style=\"color: rgb(215,7,27)\"");
+		String font_face = "@font-face {font-family: 'myface'; src: url('file:///android_asset/fonts/Montserrat-Regular.ttf')}";
+
+		String info_data = band_info.trim();
+
+		// String webStyle =
+		// "<html><head><style type=\"text/css\">@font-face {font-family: MyFont;style='width:100%%; height:auto'src: url(\"file:///android_asset/fonts/Montserrat-Bold.otf\")}body {color:#FFFFFF; font-family: MyFont;font-size: small;}</style></head><body style='text-align:left;'>";
+		// String pas = "</body></html>";
+		// String myHtmlString = webStyle + band_info + pas;
+
+		String htmldata = "<html> " + "<head> " + "<style type=\"text/css\"> " + "img {max-width:100%" + "; height:auto; }" + font_face + "</style> " + "</head> "
+				+ "<body style='font-family:myface;line-height:" + (pixelvalue + 5) + "px;font-size:" + pixelvalue + "px;color: #fff; '>" + info_data + "</body> " + "</html>";
+
+		web.loadDataWithBaseURL(null, htmldata, "text/html", "UTF-8", null);
+		web.setBackgroundColor(0x00000000);
+		/*
+		 * if (android.os.Build.VERSION.SDK_INT >= 11)
+		 * web.setLayerType(WebView.LAYER_TYPE_SOFTWARE, null);
+		 */
+	}
+
+	public void hideInfo()
+	{
+		llInfo.removeAllViews();
+		llInfo.setVisibility(View.GONE);
+		tvInfo.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_arrow_white, 0);
+		info_click = false;
+	}
+
+	public void ShowMedia()
+	{
+
+		media_click = true;
+		// llMedia.setVisibility(View.VISIBLE);
+		svMedia.setVisibility(View.VISIBLE);
+		tvMedia.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_downarrow, 0);
+		// View child = getLayoutInflater().inflate(
+		// R.layout.fragment_program_media, llMedia, false);
+		// llMedia.addView(child);
+		Item item = new Item();
+
+		LinearLayout media_linear = (LinearLayout) findViewById(R.id.media_linear);
+		LinearLayout video_linear = (LinearLayout) findViewById(R.id.video_linear);
+
+		// TextView tvPhotos = (TextView) child.findViewById(R.id.tvPhotos);
+		// TextView tvVideo = (TextView) child.findViewById(R.id.tvVideos);
+		// TextView tvPhotos = (TextView) findViewById(R.id.tvPhotos);
+		// TextView tvVideo = (TextView) findViewById(R.id.tvVideos);
+
+		TwoWayGridView tgvMedia = (TwoWayGridView) findViewById(R.id.tgvMedia);
+		TwoWayGridView tgvVideo = (TwoWayGridView) findViewById(R.id.tgvVideo);
+
+		/*
+		 * if(band_id == 44) { //single image Item itemMedia = MediaList.get(0);
+		 * MediaList = new ArrayList<Item>(); MediaList.add(itemMedia);
+		 * 
+		 * //no image // MediaList = new ArrayList<Item>(); }
+		 */
+
+		if (MediaList.size() > 0)
+		{
+			media_linear.removeAllViews();
+			media_linear.addView(tgvMedia);
+			// for (int i = 0; i < MediaList.size(); i++)
+			// {
+			// item = MediaList.get(i);
+			// ImageView imageView = new ImageView(getApplicationContext());
+			// if(Utils.CheckFile(item.getBand_pic()))
+			// {
+			// Bitmap bmp = BitmapFactory.decodeFile(item.getBand_pic());
+			// imageView.setImageBitmap(bmp);
+			// }
+			// else
+			// imageLoader.DisplayImage(item.getBand_media(),
+			// imageView,R.drawable.ic_launcher);
+			// LinearLayout.LayoutParams layoutParams = new
+			// LinearLayout.LayoutParams(150, 150);
+			// layoutParams.setMargins(10, 0, 10, 0);
+			// imageView.setLayoutParams(layoutParams);
+			// media_linear.addView(imageView);
+			if (MediaList.size() == 1)
+			{
+
+				MediaAdapterSingle mediaAdapter = new MediaAdapterSingle(BandDetailsActivity.this, MediaList);
+				tgvMedia.setAdapter(mediaAdapter);
+				mediaAdapter.notifyDataSetChanged();
+				Helper.setListViewHeightBasedOnChildren(tgvMedia);
+			}
+			else
+			{
+				MediaAdapter mediaAdapter1 = new MediaAdapter(BandDetailsActivity.this, MediaList);
+				tgvMedia.setAdapter(mediaAdapter1);
+			}
+
+			// }
+		}
+		else
+		{
+			// if (option2.isChecked()) {
+			media_linear.removeAllViews();
+			media_linear.setVisibility(View.GONE);
+			tvPhotos.setVisibility(View.GONE);
+			/*
+			 * TextView RecordsTxt = new TextView(getApplicationContext());
+			 * RecordsTxt.setTypeface(Utils
+			 * .getTypeface(BandDetailsActivity.this));
+			 * RecordsTxt.setText("Kein Eintrag gefunden!");
+			 * RecordsTxt.setTextColor(Color.WHITE); RecordsTxt.setTextSize(18);
+			 * RecordsTxt.setPadding(5, 5, 5, 5);
+			 * media_linear.addView(RecordsTxt);
+			 */
+			// }
+		}
+
+		// if(band_id == 44)
+		// {
+		// //Single Video
+		// Item itemMedia = VideoList.get(0);
+		// VideoList = new ArrayList<Item>();
+		// VideoList.add(itemMedia);
+		//
+		// //No Video
+		// // VideoList = new ArrayList<Item>();
+		// }
+
+		if (VideoList.size() > 0)
+		{
+
+			/*
+			 * for (int i = 0; i < VideoList.size(); i++) { item =
+			 * VideoList.get(i); ImageView imageView = new
+			 * ImageView(getApplicationContext());
+			 * if(Utils.CheckFile(item.getVideo_pic())) { Bitmap bmp =
+			 * BitmapFactory.decodeFile(item.getVideo_pic());
+			 * imageView.setImageBitmap(bmp); } else
+			 * imageLoader.DisplayImage(item.getVideo_photo(),
+			 * imageView,R.drawable.ic_launcher);
+			 * 
+			 * LinearLayout.LayoutParams layoutParams = new
+			 * LinearLayout.LayoutParams(150, 150); layoutParams.setMargins(10,
+			 * 0, 10, 0); imageView.setLayoutParams(layoutParams);
+			 * imageView.setOnClickListener(new clicker(i));
+			 * video_linear.addView(imageView);
+			 */
+
+			if (VideoList.size() == 1)
+			{
+				// if (Build.VERSION.SDK_INT > 11) {
+
+				// webview = new HTML5WebView(context);
+				video_linear.getLayoutParams().height = BandDetailsActivity.image_height;
+				video_linear.getLayoutParams().width = BandDetailsActivity.image_width;
+				video_linear.requestLayout();
+				// webview = new HTML5WebView(context);
+				tgvVideo.setVisibility(View.GONE);
+				wvVideo.getSettings().setBuiltInZoomControls(false);
+				wvVideo.getSettings().setSupportZoom(false);
+				wvVideo.getSettings().setJavaScriptEnabled(true);
+
+				// wvVideo.getLayoutParams().height =
+				// BandDetailsActivity.image_height;
+				// wvVideo.getLayoutParams().width =
+				// BandDetailsActivity.image_width;
+				// wvVideo.requestLayout();
+
+				// wvVideo.getSettings().setUseWideViewPort(false);
+				/*
+				 * progDailog = new ProgressDialog(context);
+				 * progDailog.setMessage("Loading video..");
+				 * progDailog.setCancelable(false); progDailog.show();
+				 */
+
+				pDialog = new Dialog(context);
+				pDialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+				pDialog.getWindow().setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
+				pDialog.setContentView(R.layout.dialog_progress);
+				pDialog.setCancelable(false);
+
+				TextView tvMsg = (TextView) pDialog.findViewById(R.id.tvMsg);
+				tvMsg.setText(getResources().getString(R.string.loading_video));
+
+				pDialog.show();
+
+				datatext = VideoList.get(0).getVideo_url();
+				datatext = datatext.replace("<iframe", "<iframe height=100%  width=100% ");
+
+				final String htmldata = "<html> " + "<head> " + "</head> " + "<body style=\"margin:0;\" bgcolor=\"#493362\">" + datatext + "</body> " + "</html>";
+
+				wvVideo.setWebViewClient(new WebViewClient()
+				{
+					boolean timeout = true;
+
+					@Override
+					public void onPageFinished(WebView view, String url)
+					{
+						if (pDialog.isShowing())
+						{
+							pDialog.dismiss();
+						}
+					}
+
+					@Override
+					public void onPageStarted(WebView view, String url, Bitmap favicon)
+					{
+						// TODO Auto-generated method stub
+						Runnable run = new Runnable()
+						{
+							public void run()
+							{
+
+								if (timeout)
+								{
+									// do what you want
+									if (pDialog.isShowing())
+									{
+										pDialog.dismiss();
+										Toast.makeText(context, "Video could not be loaded", Toast.LENGTH_SHORT).show();
+									}
+								}
+							}
+						};
+						new Handler().postDelayed(run, 30000);
+					}
+
+					@Override
+					public boolean shouldOverrideUrlLoading(WebView view, String url)
+					{
+						return true;
+					}
+
+				});
+
+				wvVideo.loadDataWithBaseURL(null, htmldata, "text/html", "UTF-8", null);
+
+				wvVideo.setOnTouchListener(new OnTouchListener()
+				{
+
+					@Override
+					public boolean onTouch(View v, MotionEvent event)
+					{
+						// TODO Auto-generated method stub
+						switch (event.getAction())
+						{
+							case MotionEvent.ACTION_DOWN:
+								if (clickCount == 0)
+								{
+									startTime = System.currentTimeMillis();
+								}
+								clickCount++;
+								break;
+
+							case MotionEvent.ACTION_UP:
+								long time = System.currentTimeMillis() - startTime;
+								if (clickCount == 2)
+								{
+									duration = duration + time;
+
+									if (time <= MAX_DURATION)
+									{
+										return false;
+									}
+
+									clickCount = 0;
+									duration = 0;
+									break;
+								}
+								if (clickCount == 1 && time > MAX_DURATION)
+								{
+									clickCount = 0;
+									duration = 0;
+								}
+						}
+						return onTouchEvent(event);
+					}
+				});
+
+			}
+			else
+			{
+				wvVideo.setVisibility(View.GONE);
+				tgvVideo.setVisibility(View.VISIBLE);
+				tgvVideo.setAdapter(new VideoAdapter(BandDetailsActivity.this, VideoList));
+			}
+			/*
+			 * else {
+			 * 
+			 * View child1 =
+			 * getLayoutInflater().inflate(R.layout.activity_about, llInfo,
+			 * false); llInfo.addView(child);
+			 * 
+			 * progDailog = new ProgressDialog(context);
+			 * progDailog.setMessage("Loading video..");
+			 * progDailog.setCancelable(false); progDailog.show(); webview =
+			 * (WebView) child1.findViewById(R.id.about_web);
+			 * 
+			 * webview.setBackgroundColor(0x00000000);
+			 * 
+			 * WebSettings webViewSettings = webview.getSettings();
+			 * webViewSettings .setJavaScriptCanOpenWindowsAutomatically(true);
+			 * webViewSettings.setJavaScriptEnabled(true);
+			 * webViewSettings.setUserAgentString("0");
+			 * webViewSettings.setPluginState(PluginState.ON);
+			 * webViewSettings.setBuiltInZoomControls(false);
+			 * webview.getSettings().setUseWideViewPort(false);
+			 * webview.getSettings().setLayoutAlgorithm(
+			 * LayoutAlgorithm.SINGLE_COLUMN); webview.setWebChromeClient(new
+			 * WebChromeClient() { }); datatext = datatext.replace("<iframe",
+			 * "<iframe  height=50% ");
+			 * 
+			 * htmldata="<html> "+ "<head> "+ "<style type=\"text/css\"> "+
+			 * "</style> "+ "</head> "+
+			 * "<body bgcolor=\"#493362\">"+data+"<br><br></body> "+ "</html>";
+			 * 
+			 * webview.setWebViewClient(new WebViewClient() {
+			 * 
+			 * @Override public void onPageFinished(WebView view, String url) {
+			 * if (progDailog.isShowing()) { progDailog.dismiss(); } }
+			 * 
+			 * @Override public boolean shouldOverrideUrlLoading(WebView view,
+			 * String url) { view.loadDataWithBaseURL(null, datatext,
+			 * "text/html", "UTF-8", null); return true; } });
+			 * webview.loadDataWithBaseURL(null, datatext, "text/html", "UTF-8",
+			 * null); } } else { video_linear.removeAllViews();
+			 * video_linear.addView(tgvVideo); tgvVideo.setAdapter(new
+			 * VideoAdapter(BandDetailsActivity.this, VideoList)); }
+			 * 
+			 * }
+			 */
+		}
+		else
+		{
+			// if (option2.isChecked()) {
+			video_linear.removeAllViews();
+			video_linear.setVisibility(View.GONE);
+			tvVideo.setVisibility(View.GONE);
+			/*
+			 * TextView RecordsTxt = new TextView(getApplicationContext());
+			 * RecordsTxt.setTypeface(Utils
+			 * .getTypeface(BandDetailsActivity.this));
+			 * RecordsTxt.setText("Kein Eintrag gefunden!");
+			 * RecordsTxt.setTextColor(Color.WHITE); RecordsTxt.setTextSize(18);
+			 * RecordsTxt.setPadding(5, 5, 5, 5);
+			 * video_linear.addView(RecordsTxt);
+			 */
+			// }
+		}
+
+		if (MediaList.isEmpty() && VideoList.isEmpty())
+		{
+			llMedia.setVisibility(View.GONE);
+			tvMedia.setVisibility(View.GONE);
+			media_separator.setVisibility(View.GONE);
+		}
+
+		tgvVideo.setOnItemClickListener(new OnItemClickListener()
+		{
+
+			@Override
+			public void onItemClick(TwoWayAdapterView<?> parent, View view, int position, long id)
+			{
+				// TODO Auto-generated method stub
+				if (HelperHttp.isNetworkAvailable(BandDetailsActivity.this))
+				{
+					Item item = new Item();
+					item = VideoList.get(position);
+
+					if (Build.VERSION.SDK_INT > 11)
+					{
+						Intent mIntent = new Intent(BandDetailsActivity.this, ShowVideoActivity.class);
+						Bundle b = new Bundle();
+						b.putString("video_url", item.getVideo_url());
+						b.putString("title", band_title);
+						mIntent.putExtras(b);
+						startActivity(mIntent);
+					}
+					else
+					{
+						Intent mIntent = new Intent(BandDetailsActivity.this, ShowVideoActivityBelow11.class);
+						Bundle b = new Bundle();
+						b.putString("video_url", item.getVideo_url());
+						b.putString("title", band_title);
+						mIntent.putExtras(b);
+						startActivity(mIntent);
+					}
+				}
+				else
+					Toast.makeText(BandDetailsActivity.this, "Keine Internet-Verbindung.", Toast.LENGTH_LONG).show();
+			}
+		});
+	}
+
+	public void hideMedia()
+	{
+		// llMedia.setVisibility(View.GONE);
+		svMedia.setVisibility(View.GONE);
+		// llMedia.removeAllViews();
+		tvMedia.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_arrow_white, 0);
+		media_click = false;
+	}
+
+	public class clicker implements View.OnClickListener
+	{
+		int position;
+
+		public clicker(int pos)
+		{
+			position = pos;
+		}
+
+		@Override
+		public void onClick(View v)
+		{
+			if (HelperHttp.isNetworkAvailable(BandDetailsActivity.this))
+			{
+				Item item = new Item();
+				item = VideoList.get(position);
+
+				if (Build.VERSION.SDK_INT > 11)
+				{
+					Intent mIntent = new Intent(v.getContext(), ShowVideoActivity.class);
+					Bundle b = new Bundle();
+					b.putString("video_url", item.getVideo_url());
+					b.putString("title", band_title);
+					mIntent.putExtras(b);
+					startActivity(mIntent);
+				}
+				else
+				{
+					Intent mIntent = new Intent(v.getContext(), ShowVideoActivityBelow11.class);
+					Bundle b = new Bundle();
+					b.putString("video_url", item.getVideo_url());
+					b.putString("title", band_title);
+					mIntent.putExtras(b);
+					startActivity(mIntent);
+				}
+			}
+			else
+				Toast.makeText(BandDetailsActivity.this, "Keine Internet-Verbindung.", Toast.LENGTH_LONG).show();
+		}
+	}
+
+	public void FetchMedia()
+	{
+		try
+		{
+			String img_url = HelperHttp.IMAGE_BASE_URL + "band-photo/";
+
+			// getting JSON string from URL
+			// JSONObject json =
+			// JsonParser.PostJSONFromUrl(Mediaurl,String.valueOf(band_id),
+			// "bandId");
+			List<NameValuePair> nvps = new ArrayList<NameValuePair>();
+			nvps.add(new BasicNameValuePair("bandId", String.valueOf(band_id)));
+			String jo = HelperHttp.getJSONResponseFromPOSTURL(HelperHttp.WEB_SERVICE_URL + Mediaurl, nvps);
+
+			if (jo != null)
+			{
+				JSONObject json = new JSONObject(jo);
+
+				if (!MediaList.isEmpty())
+					MediaList.clear();
+				if (json != null)
+				{
+
+					if (json.optString("status").equals("1"))
+					{
+						// Getting Array of Contacts
+						results = json.getJSONArray("bandphotos");
+
+						// looping through All Contacts
+						for (int i = 0; i < results.length(); i++)
+						{
+							JSONObject c = results.getJSONObject(i);
+
+							Item map = new Item();
+							// Storing each json item in variable
+
+							String band_photo_id = c.getString("band_photo_id");
+							String band_photo = img_url + c.getString("band_photo");
+							String band_pic = c.getString("band_photo");
+							String status = c.getString("band_photo_active");
+							int isRemoved = Integer.parseInt(c.getString("band_photo_removed"));
+
+							map.setBand_photo_id(Integer.parseInt(band_photo_id));
+							map.setBand_media(band_photo);
+							// String local_image=Utils.saveToSdcard(band_pic,
+							// band_photo);
+							ZMFApp app = (ZMFApp) getApplicationContext();
+							app.saveImageToLineUP(band_pic, img_url + band_pic);
+							map.setBand_pic(android.os.Environment.getExternalStorageDirectory() + "/ZMF" + band_pic);
+							// map.setBand_pic(local_image);
+							map.setBand_media_status(status);
+
+							MediaList.add(map);
+
+							if (isRemoved == 0)
+							{
+								if (db.getBandMediaId(band_photo_id) == 0)
+								{
+									db.addBandMedia(map, band_id);
+								}
+								else
+								{
+									db.updateBandMedia(map, band_id);
+								}
+							}
+							else
+								db.DeleteBandMediaId(band_photo_id);
+						}
+					}
+				}
+			}
+		} catch (JSONException e)
+		{
+			e.printStackTrace();
+		}
+	}
+
+	public void FetchVideo()
+	{
+		String img_url = HelperHttp.IMAGE_BASE_URL + "video_thumbnails/";
+
+		try
+		{
+			// getting JSON string from URL
+			// JSONObject json =
+			// JsonParser.PostJSONFromUrl("http://ras.avodi.de/webservice/band-video-listing.php",String.valueOf(band_id),
+			// "bandId");
+			List<NameValuePair> nvps = new ArrayList<NameValuePair>();
+			nvps.add(new BasicNameValuePair("bandId", String.valueOf(band_id)));
+			String jo = HelperHttp.getJSONResponseFromPOSTURL(HelperHttp.WEB_SERVICE_URL + "band-video-listing.php", nvps);
+
+			if (jo != null)
+			{
+				JSONObject json = new JSONObject(jo);
+
+				VideoList.clear();
+				if (json != null)
+				{
+					if (json.optString("status").equals("1"))
+					{
+
+						// Getting Array of Contacts
+						results = json.getJSONArray("bandvideos");
+
+						// looping through All Contacts
+						for (int i = 0; i < results.length(); i++)
+						{
+							JSONObject c = results.getJSONObject(i);
+
+							Item map = new Item();
+							// Storing each json item in variable
+
+							String video_id = c.getString("band_photo_id");
+							String video_photo = img_url + c.getString("band_photo_url");
+							String video_pic = c.getString("band_photo_url");
+							String video_url = c.getString("band_photo");
+							String status = c.getString("band_photo_active");
+							int isRemoved = Integer.parseInt(c.getString("band_photo_removed"));
+
+							map.setVideo_status(status);
+							map.setVideo_id(Integer.parseInt(video_id));
+							map.setVideo_photo(video_photo);
+							// String local_image=Utils.saveToSdcard(video_pic,
+							// video_photo);
+
+							ZMFApp app = (ZMFApp) getApplicationContext();
+							app.saveImageToLineUP(video_pic, img_url + video_pic);
+							// String local_image =
+							// Utils.saveToSdcard(image,img_url
+							// + c.getString("band_image"));
+							map.setVideo_pic(android.os.Environment.getExternalStorageDirectory() + "/ZMF" + video_pic);
+							// map.setVideo_pic(local_image);
+							map.setVideo_url(video_url);
+
+							VideoList.add(map);
+
+							if (isRemoved == 0)
+							{
+								if (db.getBandVideoId(video_id) == 0)
+								{
+									db.addBandVideo(map, band_id);
+								}
+								else
+								{
+									db.updateBandVideo(map, band_id);
+								}
+							}
+							else
+								db.DeleteBandVideoId(video_id);
+
+						}
+					}
+				}
+			}
+		} catch (JSONException e)
+		{
+			e.printStackTrace();
+		}
+	}
+
+	public void ShowLinks()
+	{
+		// FetchLinks();
+		link_click = true;
+		llLinks.setVisibility(View.VISIBLE);
+		tvLinks.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_downarrow, 0);
+
+		View child = getLayoutInflater().inflate(R.layout.activity_program, llLinks, false);
+		child.setBackgroundResource(android.R.color.transparent);
+		final ListView list = (ListView) child.findViewById(R.id.lineup_list);
+		LinearLayout emptyView = (LinearLayout) child.findViewById(android.R.id.empty);
+		list.setEmptyView(emptyView);
+		// emptyView.setV
+
+		if (LinkList.size() > 0)
+		{
+			LinkAdapter adapter = new LinkAdapter(BandDetailsActivity.this, LinkList, "Band");
+			list.setAdapter(adapter);
+			adapter.notifyDataSetChanged();
+			Helper.setListViewHeightBasedOnChildren(list);
+			list.postDelayed(new Runnable()
+			{
+				public void run()
+				{
+					// svMain.scrollTo(0, svMain.getBottom());
+					svMain.fullScroll(View.FOCUS_DOWN);
+				}
+			}, 500);
+			llLinks.addView(child);
+		}
+		else
+		{
+			/*
+			 * LinearLayout linear = new LinearLayout(getApplicationContext());
+			 * TextView RecordsTxt = new TextView(getApplicationContext());
+			 * RecordsTxt
+			 * .setTypeface(Utils.getTypeface(BandDetailsActivity.this));
+			 * RecordsTxt.setText(" Kein Eintrag gefunden");
+			 * RecordsTxt.setTextColor(Color.WHITE); RecordsTxt.setTextSize(18);
+			 * RecordsTxt.setPadding(5, 5, 5, 5); linear.addView(RecordsTxt);
+			 * 
+			 * llLinks.addView(linear);
+			 */
+
+			llLinks.setVisibility(View.GONE);
+			tvLinks.setVisibility(View.GONE);
+			link_separator.setVisibility(View.GONE);
+		}
+
+	}
+
+	public void hideLinks()
+	{
+		llLinks.removeAllViews();
+		llLinks.setVisibility(View.GONE);
+		tvLinks.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_arrow_white, 0);
+		link_click = false;
+	}
+
+	public void FetchLinks()
+	{
+		try
+		{
+
+			// getting JSON string from URL
+			// JSONObject
+			// json=JsonParser.getJSONFromUrl(Linkurl+"?bandId="+band_id);
+			String jo = HelperHttp.getJSONResponseFromURL(HelperHttp.WEB_SERVICE_URL + Linkurl + "?bandId=" + band_id, null);
+			if (jo != null)
+			{
+
+				JSONObject json = new JSONObject(jo);
+
+				if (!LinkList.isEmpty())
+					LinkList.clear();
+				if (json != null)
+				{
+					// Getting Array of Contacts
+					results = json.getJSONArray("bandlinks");
+
+					// looping through All Contacts
+					for (int i = 0; i < results.length(); i++)
+					{
+						JSONObject c = results.getJSONObject(i);
+
+						Item map = new Item();
+						// Storing each json item in variable
+
+						String band_link_id = c.getString("band_link_id");
+						String band_link = c.getString("band_link");
+						String band_link_url = c.getString("band_link_url");
+						String status = c.getString("band_link_active");
+						int isRemoved = Integer.parseInt(c.getString("band_link_removed"));
+
+						map.setBand_link_id(Integer.parseInt(band_link_id));
+						map.setBand_link(band_link);
+						map.setBand_link_url(band_link_url);
+						map.setBand_link_status(status);
+
+						LinkList.add(map);
+
+						if (isRemoved == 0)
+						{
+							if (db.getBandLinkId(band_link_id) == 0)
+							{
+								db.addBandLinks(map, band_id);
+							}
+							else
+							{
+								db.updateBandLinks(map, band_id);
+							}
+						}
+						else
+							db.DeleteBandLinkId(band_link_id);
+					}
+
+					if (LinkList.size() == 0)
+					{
+						llLinks.setVisibility(View.GONE);
+						tvLinks.setVisibility(View.GONE);
+					}
+				}
+			}
+		} catch (JSONException e)
+		{
+			e.printStackTrace();
+		}
+	}
+
+	@Override
+	public void onBackPressed()
+	{
+		super.onBackPressed();
+		MediaList.clear();
+		LinkList.clear();
+		VideoList.clear();
+
+		if (isFavList)
+		{
+			if (isDeleted)
+			{
+				Intent intent = getIntent();
+				setResult(request_code, intent);
+			}
+		}
+	}
+
+	private class UserTask extends AsyncTask<String, Integer, String>
+	{
+		ProgressDialog dialog;
+
+		@Override
+		protected void onPreExecute()
+		{
+			pDialog = new Dialog(context);
+			pDialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+			pDialog.getWindow().setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
+			pDialog.setContentView(R.layout.dialog_progress);
+			pDialog.setCancelable(false);
+			pDialog.show();
+		}
+
+		@Override
+		protected String doInBackground(String... params)
+		{
+			// TODO Auto-generated method stub
+			if (HelperHttp.isNetworkAvailable(BandDetailsActivity.this))
+			{
+				FetchMedia();
+				FetchVideo();
+				FetchLinks();
+			}
+			MediaList = db.getAllBandMedia(band_id);
+
+			LinkList = db.getAllBandLinks(band_id);
+
+			VideoList = db.getAllBandVideo(band_id);
+			return null;
+		}
+
+		@Override
+		protected void onPostExecute(String result)
+		{
+			// ShowMedia();
+			// ShowLinks();
+			if ((MediaList.size() == 0 && VideoList.size() == 0))
+			{
+				// llMedia.setVisibility(View.GONE);
+				svMedia.setVisibility(View.GONE);
+				tvMedia.setVisibility(View.GONE);
+				media_separator.setVisibility(View.GONE);
+			}
+			else if ((MediaList.size() == 0 && VideoList.size() == 1) || (MediaList.size() == 1 && VideoList.size() == 0))
+			{
+				tvPhotos.setVisibility(View.GONE);
+				tvVideo.setVisibility(View.GONE);
+			}
+
+			if (LinkList.size() == 0)
+			{
+				llLinks.setVisibility(View.GONE);
+				tvLinks.setVisibility(View.GONE);
+				link_separator.setVisibility(View.GONE);
+			}
+
+			pDialog.dismiss();
+		}
+	}
+
+	@Override
+	public void onClick(View v)
+	{
+		// TODO Auto-generated method stub
+		switch (v.getId())
+		{
+			case R.id.ivAlarm:
+				AddCalenderEvent();
+				break;
+			case R.id.ivFavourite:
+				if (!isFav)
+				{
+					db.addFavorites(band_id);
+					ivFavourite.setImageResource(R.drawable.ic_fav__checked);
+					isFav = true;
+					CustomDialogManager.showOkDialog(context, "Auf der Favoritenliste");
+				}
+				else
+				{
+					isDeleted = true;
+					db.DeleteFavId(band_id);
+					ivFavourite.setImageResource(R.drawable.ic_fav_event);
+					isFav = false;
+					CustomDialogManager.showOkDialog(context, "Aus den Favoriten entfernt");
+					// DialogManager.showLongToast("Aus den Favoriten entfernt",
+					// BandDetailsActivity.this);
+				}
+				break;
+			case R.id.tvInformation:
+				if (info_click == false)
+					ShowInfo();
+				else
+					hideInfo();
+				break;
+			case R.id.tvMedia:
+				if (media_click == false)
+					ShowMedia();
+				else
+					hideMedia();
+				break;
+			case R.id.tvLinks:
+				if (link_click == false)
+					ShowLinks();
+				else
+					hideLinks();
+				break;
+			default:
+				break;
+		}
+	}
+
+	@Override
+	protected void onPause()
+	{
+		// TODO Auto-generated method stub
+		super.onPause();
+		try
+		{
+			Class.forName("android.webkit.WebView").getMethod("onPause", (Class[]) null).invoke(webview, (Object[]) null);
+
+		} catch (ClassNotFoundException cnfe)
+		{
+
+		} catch (NoSuchMethodException nsme)
+		{
+
+		} catch (InvocationTargetException ite)
+		{
+
+		} catch (IllegalAccessException iae)
+		{
+
+		} catch (Exception e)
+		{
+			// TODO: handle exception
+		}
+	}
+
+}
