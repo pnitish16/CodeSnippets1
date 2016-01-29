@@ -1,0 +1,185 @@
+package com.tienet.activity;
+
+import android.content.Context;
+import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
+import android.widget.ListView;
+import android.widget.TextView;
+
+import com.android.volley.VolleyError;
+import com.nw.vollyjolly.DataInObject;
+import com.nw.vollyjolly.NetworkCall;
+import com.nw.vollyjolly.StringListener;
+import com.nw.vollyjolly.VolleyHelper;
+import com.tienet.R;
+import com.tienet.pojo.CategoryItem;
+import com.tienet.utils.Constants;
+
+import org.json.JSONObject;
+import org.xml.sax.SAXException;
+import org.xml.sax.helpers.DefaultHandler;
+
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.jar.Attributes;
+
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
+
+/**
+ * Created by Nitish.Pradhan on 11-01-2016.
+ */
+public class  SaxParsing extends AppCompatActivity{
+    private ListView rvListItems;
+    private Context context;
+    private String cat_url ;
+    private ArrayList<CategoryItem> alCategories;
+    private TextView tvText;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+    setContentView(R.layout.activity_parsing);
+        context = SaxParsing.this;
+
+        cat_url = Constants.live_baseurl + "percorsi/";
+        alCategories = new ArrayList<CategoryItem>();
+        init();
+//        callWS();
+        parseSax();
+//        parseXmlString(null);
+    }
+
+
+    private void init() {
+        tvText = (TextView) findViewById(R.id.textView);
+    }
+
+    public void parseSax()
+    {
+        try {
+            SAXParserFactory factory = SAXParserFactory.newInstance();
+            SAXParser saxParser = factory.newSAXParser();
+
+            DefaultHandler handler = new DefaultHandler() {
+                boolean name = false;
+                boolean salary = false;
+
+                public void startElement(String uri, String localName, String qName,
+                                         Attributes attributes) throws SAXException {
+                    if (qName.equalsIgnoreCase("name")) {
+                        name = true;
+                    }
+                    if (qName.equalsIgnoreCase("salary")) {
+                        salary = true;
+                    }
+                }
+
+                public void endElement(String uri, String localName,
+                                       String qName) throws SAXException {
+                }
+
+                public void characters(char ch[], int start, int length) throws SAXException {
+                    if (name) {
+                        tvText.setText(tvText.getText() + "\n\n Name : " + new String(ch, start, length));
+                        name = false;
+                    }
+                    if (salary) {
+                        tvText.setText(tvText.getText() + "\n Salary : " + new String(ch, start, length));
+                        salary = false;
+                    }
+                }//end of characters
+            };//end of DefaultHandler
+
+            InputStream is = getAssets().open("file.xml");
+            saxParser.parse(is, handler);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    /**
+     * calling the sax parsing webservice
+     */
+
+    private void callWS() {
+        if (VolleyHelper.isNetworkAvailable(context)) {
+            JSONObject jsonObject = new JSONObject();
+            try {
+                jsonObject.put("username", "KagisoI");  //KagisoI
+                jsonObject.put("password", "pass1234"); //pass1234
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            DataInObject inObj = new DataInObject(null, cat_url,"getCategories");
+            NetworkCall webserviceCall = new NetworkCall(context);
+            webserviceCall.jsonObjectPostRequestString(inObj, new StringListener() {
+                @Override
+                public void onErrorResponse(VolleyError error) {
+                    super.onErrorResponse(error);
+                }
+
+                @Override
+                public void onResponse(String s) {
+                    super.onResponse(s);
+                    Log.d("Response", s);
+                }
+            });
+        } else {
+        }
+    }
+
+    public void parseXmlString(String response)
+    {
+        CategoryItem categoryItem;
+        try {
+            SAXParserFactory factory = SAXParserFactory.newInstance();
+
+            SAXParser saxParser = factory.newSAXParser();
+
+            DefaultHandler handler = new DefaultHandler() {
+
+                boolean name = false;
+
+                boolean salary = false;
+
+                public void startElement(String uri, String localName,String qName,
+                                         Attributes attributes) throws SAXException {
+                    if (qName.equalsIgnoreCase("name"))
+                    {
+                        name = true;
+                    }
+                    if (qName.equalsIgnoreCase("salary"))
+                    {
+                        salary = true;
+                    }
+                }//end of startElement method
+                public void endElement(String uri, String localName,
+                                       String qName) throws SAXException {
+                }
+
+                public void characters(char ch[], int start, int length) throws SAXException {
+                    if (name) {
+
+//                        categoryItem = new CategoryItem(0,)
+                        tvText.setText(tvText.getText()+"\n Name : " + new String(ch, start, length));
+                        name = false;
+                    }
+                    if (salary) {
+                        tvText.setText(tvText.getText()+"\n Salary : " + new String(ch, start, length));
+                        salary = false;
+                    }
+                }//end of characters method
+            };//end of DefaultHandler object
+
+            InputStream is = getAssets().open("file.xml");
+            saxParser.parse(is, handler);
+
+        } catch (Exception e) {e.printStackTrace();}
+    }
+}
