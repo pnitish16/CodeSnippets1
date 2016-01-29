@@ -1,0 +1,139 @@
+package com.tienet.activity;
+
+import android.annotation.TargetApi;
+import android.content.Context;
+import android.os.Build;
+import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
+import android.widget.ArrayAdapter;
+import android.widget.ListView;
+import android.widget.TextView;
+
+import com.android.volley.VolleyError;
+import com.nw.vollyjolly.DataInObject;
+import com.nw.vollyjolly.NetworkCall;
+import com.nw.vollyjolly.StringListener;
+import com.nw.vollyjolly.VolleyHelper;
+import com.tienet.R;
+import com.tienet.pojo.CategoryItem;
+import com.tienet.utils.Constants;
+import com.tienet.utils.XmlPullParserHandler1;
+
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+
+public class MainActivity extends AppCompatActivity {
+    TextView tv;
+    ListView lv;
+    private Context context;
+    private String cat_url ;
+    List<CategoryItem> alCategories;
+    List<String> catTitles;
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        lv = (ListView) findViewById(R.id.listview1);
+        context = MainActivity.this;
+
+        cat_url = Constants.live_baseurl + "percorsi/";
+        alCategories = new ArrayList<CategoryItem>();
+        catTitles= new ArrayList<String>();
+        callWS();
+
+//        List<Employee> employees = null;
+//        try {
+//            XmlPullParserHandler parser = new XmlPullParserHandler();
+//            InputStream is=getAssets().open("employees.xml");
+//            employees = parser.parse(is);
+//
+//            ArrayAdapter<Employee> adapter =new ArrayAdapter<Employee>
+//                    (this,android.R.layout.simple_list_item_1, employees);
+//            lv.setAdapter(adapter);
+//
+//        } catch (IOException e) {e.printStackTrace();}
+
+    }
+        /*try {
+            SAXParserFactory factory = SAXParserFactory.newInstance();
+            SAXParser saxParser = factory.newSAXParser();
+
+            DefaultHandler handler = new DefaultHandler() {
+                boolean name = false;
+                boolean salary = false;
+
+                public void startElement(String uri, String localName, String qName,
+                                         Attributes attributes) throws SAXException {
+                    if (qName.equalsIgnoreCase("name")) {
+                        name = true;
+                    }
+                    if (qName.equalsIgnoreCase("salary")) {
+                        salary = true;
+                    }
+                }
+
+                public void endElement(String uri, String localName,
+                                       String qName) throws SAXException {
+                }
+
+                public void characters(char ch[], int start, int length) throws SAXException {
+                    if (name) {
+                        tv.setText(tv.getText() + "\n\n Name : " + new String(ch, start, length));
+                        name = false;
+                    }
+                    if (salary) {
+                        tv.setText(tv.getText() + "\n Salary : " + new String(ch, start, length));
+                        salary = false;
+                    }
+                }//end of characters
+            };//end of DefaultHandler
+
+            InputStream is = getAssets().open("file.xml");
+            saxParser.parse(is, handler);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }*/
+
+    private void callWS() {
+        if (VolleyHelper.isNetworkAvailable(context)) {
+
+            DataInObject inObj = new DataInObject(null, cat_url,"getCategories");
+            NetworkCall webserviceCall = new NetworkCall(context);
+            webserviceCall.jsonObjectPostRequestString(inObj, new StringListener() {
+                @Override
+                public void onErrorResponse(VolleyError error) {
+                    super.onErrorResponse(error);
+                }
+
+                @TargetApi(Build.VERSION_CODES.KITKAT)
+                @Override
+                public void onResponse(String s) {
+                    super.onResponse(s);
+                    Log.d("Response", s);
+
+                    XmlPullParserHandler1 parser1 = new XmlPullParserHandler1();
+                    InputStream is=new ByteArrayInputStream(s.getBytes(StandardCharsets.UTF_8));
+                    alCategories = parser1.parseCategories(is);
+                    catTitles = new ArrayList<String>();
+
+                    for(int i=0;i<alCategories.size();i++)
+                    {
+                        catTitles.add(alCategories.get(i).getTitle());
+                    }
+
+                    ArrayAdapter<String> adapter =new ArrayAdapter<String>
+                            (context,android.R.layout.simple_list_item_1, catTitles);
+                    lv.setAdapter(adapter);
+                }
+            });
+        } else {
+        }
+    }
+}
