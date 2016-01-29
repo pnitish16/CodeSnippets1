@@ -1,0 +1,389 @@
+package com.zmf.utils;
+
+import android.app.AlertDialog;
+import android.app.Dialog;
+import android.content.Context;
+import android.content.DialogInterface.OnKeyListener;
+import android.graphics.drawable.ColorDrawable;
+import android.os.Handler;
+import android.text.TextUtils;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.view.Window;
+import android.widget.Button;
+import android.widget.ImageView;
+import android.widget.TextView;
+
+import com.zmf.R;
+
+
+public class CustomDialogManager {
+
+    public static void showOkCancelDialog(Context context, final DialogListener dialogListener) {
+        AlertDialog.Builder build = new AlertDialog.Builder(context);
+        final AlertDialog okCancelDialog;
+        View view = LayoutInflater.from(context).inflate(R.layout.dialog_yes_no, null);
+        build.setView(view);
+        okCancelDialog = build.create();
+        final TextView tvTitle = (TextView) view.findViewById(R.id.tvTitle);
+        final TextView tvMessage = (TextView) view.findViewById(R.id.tvMessage);
+        final ImageView ivClose = (ImageView) view.findViewById(R.id.ivClose);
+        final Button btnNo = (Button) view.findViewById(R.id.btnNo);
+        final Button btnYes = (Button) view.findViewById(R.id.btnYes);
+        ivClose.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                okCancelDialog.dismiss();
+            }
+        });
+
+        btnYes.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                okCancelDialog.dismiss();
+                if (dialogListener != null)
+                    dialogListener.onButtonClicked(Dialog.BUTTON_POSITIVE);
+            }
+        });
+
+        btnNo.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                okCancelDialog.dismiss();
+                if (dialogListener != null)
+                    dialogListener.onButtonClicked(Dialog.BUTTON_NEGATIVE);
+            }
+
+        });
+        tvTitle.setText("");
+        tvMessage.setText("");
+        okCancelDialog.show();
+    }
+
+    public static void showOkCancelDialog(Context context, String message, final DialogListener dialogListener) {
+        AlertDialog.Builder build = new AlertDialog.Builder(context);
+        final AlertDialog okCancelDialog;
+        View view = LayoutInflater.from(context).inflate(R.layout.dialog_yes_no, null);
+        build.setView(view);
+        okCancelDialog = build.create();
+        final TextView tvTitle = (TextView) view.findViewById(R.id.tvTitle);
+        final TextView tvMessage = (TextView) view.findViewById(R.id.tvMessage);
+        final ImageView ivClose = (ImageView) view.findViewById(R.id.ivClose);
+        final Button btnYes = (Button) view.findViewById(R.id.btnYes);
+        btnYes.setText(context.getResources().getString(R.string.yes));
+        final Button btnNo = (Button) view.findViewById(R.id.btnNo);
+        btnNo.setText(context.getResources().getString(R.string.no));
+
+        ivClose.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                okCancelDialog.dismiss();
+            }
+        });
+
+        btnYes.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                okCancelDialog.dismiss();
+                if (dialogListener != null)
+                    dialogListener.onButtonClicked(Dialog.BUTTON_POSITIVE);
+            }
+        });
+
+        btnNo.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                okCancelDialog.dismiss();
+                if (dialogListener != null)
+                    dialogListener.onButtonClicked(Dialog.BUTTON_NEGATIVE);
+            }
+
+        });
+        tvTitle.setText(R.string.app_name);
+        if (TextUtils.isEmpty(message))
+            tvMessage.setText("");
+        else
+            tvMessage.setText(message);
+
+        okCancelDialog.show();
+    }
+
+    public static void showOkCancelDialog(Context context, String message, String yesButtonMessage, String noButtonMessage,
+                                          final DialogListener dialogListener) {
+        AlertDialog.Builder build = new AlertDialog.Builder(context);
+        final AlertDialog okCancelDialog;
+        View view = LayoutInflater.from(context).inflate(R.layout.dialog_yes_no, null);
+        build.setView(view);
+        okCancelDialog = build.create();
+        final TextView tvTitle = (TextView) view.findViewById(R.id.tvTitle);
+        final TextView tvMessage = (TextView) view.findViewById(R.id.tvMessage);
+        final ImageView ivClose = (ImageView) view.findViewById(R.id.ivClose);
+        final TextView btnYes = (TextView) view.findViewById(R.id.btnYes);
+        btnYes.setText(yesButtonMessage);
+        final TextView btnNo = (TextView) view.findViewById(R.id.btnNo);
+        btnNo.setText(noButtonMessage);
+
+        ivClose.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                okCancelDialog.dismiss();
+            }
+        });
+
+        btnYes.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                okCancelDialog.dismiss();
+                if (dialogListener != null)
+                    dialogListener.onButtonClicked(Dialog.BUTTON_POSITIVE);
+            }
+        });
+
+        btnNo.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                okCancelDialog.dismiss();
+                if (dialogListener != null)
+                    dialogListener.onButtonClicked(Dialog.BUTTON_NEGATIVE);
+            }
+
+        });
+        tvTitle.setText(R.string.app_name);
+        if (TextUtils.isEmpty(message))
+            tvMessage.setText("");
+        else
+            tvMessage.setText(message);
+
+        okCancelDialog.show();
+    }
+
+    public static void showOkDialog(Context context, String message) {
+        AlertDialog.Builder build = new AlertDialog.Builder(context);
+        final AlertDialog okCancelDialog;
+        View view = LayoutInflater.from(context).inflate(R.layout.dialog_yes, null);
+        build.setView(view);
+        okCancelDialog = build.create();
+        final TextView tvTitle = (TextView) view.findViewById(R.id.tvTitle);
+        final TextView tvMessage = (TextView) view.findViewById(R.id.tvMessage);
+        final ImageView ivClose = (ImageView) view.findViewById(R.id.ivClose);
+        final TextView btnYes = (TextView) view.findViewById(R.id.btnYes);
+        btnYes.setText("Ok");
+        btnYes.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                okCancelDialog.dismiss();
+            }
+        });
+
+        ivClose.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                okCancelDialog.dismiss();
+            }
+        });
+        tvTitle.setText(R.string.app_name);
+
+        if (TextUtils.isEmpty(message))
+            tvMessage.setText("");
+        else
+            tvMessage.setText(message);
+
+        okCancelDialog.show();
+    }
+
+    public static void showOkDialogAutoCancel(Context context, String message) {
+        AlertDialog.Builder build = new AlertDialog.Builder(context);
+        final AlertDialog okCancelDialog;
+        View view = LayoutInflater.from(context).inflate(R.layout.dialog_yes, null);
+        build.setView(view);
+        okCancelDialog = build.create();
+        final TextView tvTitle = (TextView) view.findViewById(R.id.tvTitle);
+        final TextView tvMessage = (TextView) view.findViewById(R.id.tvMessage);
+        final ImageView ivClose = (ImageView) view.findViewById(R.id.ivClose);
+        final Button btnYes = (Button) view.findViewById(R.id.btnYes);
+        btnYes.setText("Ok");
+        Handler handler = new Handler();
+        handler.postDelayed(new Runnable() {
+
+            @Override
+            public void run() {
+                okCancelDialog.dismiss();
+            }
+        }, 3000);
+        btnYes.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                okCancelDialog.dismiss();
+            }
+        });
+
+        ivClose.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                okCancelDialog.dismiss();
+            }
+        });
+        tvTitle.setText(R.string.app_name);
+
+        if (TextUtils.isEmpty(message))
+            tvMessage.setText("");
+        else
+            tvMessage.setText(message);
+
+        okCancelDialog.show();
+    }
+
+    public static void showOkDialog(Context context, CharSequence message, final DialogListener dialogListener) {
+        AlertDialog.Builder build = new AlertDialog.Builder(context);
+        final AlertDialog okCancelDialog;
+        View view = LayoutInflater.from(context).inflate(R.layout.dialog_yes, null);
+        build.setView(view);
+        okCancelDialog = build.create();
+        final TextView tvTitle = (TextView) view.findViewById(R.id.tvTitle);
+        final TextView tvMessage = (TextView) view.findViewById(R.id.tvMessage);
+        final ImageView ivClose = (ImageView) view.findViewById(R.id.ivClose);
+        final TextView btnYes = (TextView) view.findViewById(R.id.btnYes);
+        btnYes.setText("Ok");
+
+        btnYes.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                okCancelDialog.dismiss();
+                if (dialogListener != null)
+                    dialogListener.onButtonClicked(Dialog.BUTTON_POSITIVE);
+            }
+        });
+
+        ivClose.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                okCancelDialog.dismiss();
+            }
+        });
+
+        tvTitle.setText(R.string.app_name);
+        if (TextUtils.isEmpty(message))
+            tvMessage.setText("");
+        else
+            tvMessage.setText(message);
+
+        okCancelDialog.show();
+    }
+    
+    public static void showOkDialogBack(Context context, CharSequence message, final DialogListener dialogListener,final OnKeyListener onKeyListener) {
+        AlertDialog.Builder build = new AlertDialog.Builder(context);
+        final AlertDialog okCancelDialog;
+        View view = LayoutInflater.from(context).inflate(R.layout.dialog_yes, null);
+        build.setView(view);
+        okCancelDialog = build.create();
+        final TextView tvTitle = (TextView) view.findViewById(R.id.tvTitle);
+        final TextView tvMessage = (TextView) view.findViewById(R.id.tvMessage);
+        final ImageView ivClose = (ImageView) view.findViewById(R.id.ivClose);
+        final TextView btnYes = (TextView) view.findViewById(R.id.btnYes);
+        btnYes.setText("Ok");
+
+        btnYes.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                okCancelDialog.dismiss();
+                if (dialogListener != null)
+                    dialogListener.onButtonClicked(Dialog.BUTTON_POSITIVE);
+            }
+        });
+
+        ivClose.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                okCancelDialog.dismiss();
+            }
+        });
+
+        tvTitle.setText(R.string.app_name);
+        if (TextUtils.isEmpty(message))
+            tvMessage.setText("");
+        else
+            tvMessage.setText(message);
+
+        okCancelDialog.setOnKeyListener(onKeyListener);
+        okCancelDialog.show();
+    }
+
+    public static void showReloginDialog(final Context context) {
+        AlertDialog.Builder build = new AlertDialog.Builder(context);
+        final AlertDialog okCancelDialog;
+        View view = LayoutInflater.from(context).inflate(R.layout.dialog_yes_no, null);
+        build.setView(view);
+        okCancelDialog = build.create();
+        final TextView tvTitle = (TextView) view.findViewById(R.id.tvTitle);
+        final TextView tvMessage = (TextView) view.findViewById(R.id.tvMessage);
+        final ImageView ivClose = (ImageView) view.findViewById(R.id.ivClose);
+        final Button btnYes = (Button) view.findViewById(R.id.btnYes);
+        final Button btnNo = (Button) view.findViewById(R.id.btnNo);
+        btnYes.setText("Ok");
+        btnNo.setText("No");
+
+        btnNo.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                okCancelDialog.dismiss();
+            }
+        });
+        btnYes.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+            }
+        });
+        ivClose.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                okCancelDialog.dismiss();
+            }
+        });
+
+        tvTitle.setText(R.string.app_name);
+            tvMessage.setText("For showing MyProfile screen you need to login first,Do you want to login?");
+
+        okCancelDialog.show();
+    }
+
+    public static void showOkDialog(Context context, CharSequence title, CharSequence message) {
+        AlertDialog.Builder build = new AlertDialog.Builder(context);
+        final AlertDialog okCancelDialog;
+        View view = LayoutInflater.from(context).inflate(R.layout.dialog_yes,
+                null);
+        build.setView(view);
+        okCancelDialog = build.create();
+        final TextView tvTitle = (TextView) view.findViewById(R.id.tvTitle);
+        final TextView tvMessage = (TextView) view.findViewById(R.id.tvMessage);
+        final ImageView ivClose = (ImageView) view.findViewById(R.id.ivClose);
+        final Button btnYes = (Button) view.findViewById(R.id.btnYes);
+        btnYes.setText("Ok");
+
+        btnYes.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                okCancelDialog.dismiss();
+            }
+        });
+
+        ivClose.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                okCancelDialog.dismiss();
+            }
+        });
+        if (TextUtils.isEmpty(title))
+            tvTitle.setText(R.string.app_name);
+        else
+            tvTitle.setText(title);
+
+        if (TextUtils.isEmpty(message))
+            tvMessage.setText("");
+        else
+            tvMessage.setText(message);
+
+        okCancelDialog.show();
+    }
+}
