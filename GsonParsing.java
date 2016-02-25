@@ -29,7 +29,7 @@
 				e.printStackTrace();
 			}
 
-			final DataInObject inObj = new DataInObject(dataobj, Constants.base_url + "News/", "NewsList");
+			final DataInObject inObj = new DataInObject(dataobj, http://www.softcodeapps.com/teinet/webservices/ + "News/", "NewsList");
 			NetworkCall webserviceCall = new NetworkCall(getActivity());
 			webserviceCall.jsonObjectPostRequest(inObj, new TaskListener()
 			{
